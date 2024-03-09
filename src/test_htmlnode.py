@@ -21,7 +21,7 @@ class TestHTMLNode(unittest.TestCase):
 
     def test_prop_to_html(self):
         node = HTMLNode("a", "This is a Link", props={"href":"https://www.boot.dev","target":"_blank"})
-        self.assertEqual('href="https://www.boot.dev" target="_blank" ', node.props_to_html())
+        self.assertEqual(' href="https://www.boot.dev" target="_blank"', node.props_to_html())
 
     def test_prop_to_html_none(self):
         node = HTMLNode("a", "This is a Link")

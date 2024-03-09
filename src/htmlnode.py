@@ -14,7 +14,7 @@ class HTMLNode:
         props = ""
         if self.props:
             for value in self.props:
-                props += "".join(f'{value}="{self.props[value]}" ')
+                props += f' {value}="{self.props[value]}"'
         return props
 
     def __eq__(self, __value: Self) -> bool:
