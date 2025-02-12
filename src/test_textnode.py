@@ -27,6 +27,11 @@ class TestTextNode(unittest.TestCase):
         node = TextNode("This is a text node", TextType.TEXT_BOLD)
         self.assertEqual(node.url, None)
 
+    def test_wrong_text_type(self):
+        with self.assertRaises(TypeError) as cm:
+            TextNode("This is a text node", "bold")  # type: ignore
+        self.assertEqual(str(cm.exception), "bold is not of type <enum 'TextType'>")
+
     def test_no_url_in_link_or_image(self):
         with self.assertRaises(ValueError) as cm:
             TextNode("This is a text node", TextType.LINK)

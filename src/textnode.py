@@ -15,6 +15,9 @@ class TextNode:
         self.text_type: TextType = txt_type
         self.url: None | str = url
 
+        if not isinstance(self.text_type, TextType):
+            raise TypeError(f'{self.text_type} is not of type {TextType}')
+
         if self.url and (self.text_type is not TextType.LINK and self.text_type is not TextType.IMAGE):
             '''
             what is here is not a LINK nor an IMAGE but it has an URL value
