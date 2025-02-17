@@ -14,101 +14,72 @@ class TextTypeToHTML(Enum):
     image = "img"
 
 class TestTextNodeToHtmlNode(unittest.TestCase):
-    def test_text_normal(self):
-        text = "hello world"
-        text_type = TextType.TEXT_NORMAL
-        tag = TextTypeToHTML[text_type.value].value
 
-        url = None
-        props = None
+    example_text = "hello world"
+    example_url = "https://www.boot.dev/img/bootdev-logo-full-small.webp"
+
+    def _test_text_node_to_html_helper(self, text: str, text_type: TextType, url: str | None = None, props: dict | None = None, expected_text: str | None = None):
+        """
+        Helper function to test the text_node_to_html_node() function since most tests are the same.
+
+        text (str): The text of the HTML element (or alt text for images). [Used on Input]
+        text_type (TextType): The text type of the TextNode that you want to test. [Used on Input]
+        url (str | None): The URL value if needed. Used on TextType IMAGE or LINK for example. [Used on Input]
+        props (dict | None): A dict representing all props the HTML element will have after the function have ran. [Used on Assertion]
+        expected_text (str | None): The text expected on assertion, DEFAULTS TO the "text" argument if None. [Used on Assertion]
+
+        How the "expected_text" works:
+            self._test_text_node_to_html_helper("foo", TextType.TEXT_NORMAL) -> expected_text is "foo"
+
+            self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_NORMAL, expected_text="bar") -> expected_text is "bar"
+
+            On the first example the assertion will try to see if the HTML element innerHTML text is "foo"
+            On the seccond example it will try to see if it's "bar"
+        """
+        tag = TextTypeToHTML[text_type.value].value
+        expected_text = text if expected_text is None else expected_text
 
         text_node = TextNode(text, text_type, url)
         html_node = text_node_to_html_node(text_node)
+        
 
         self.assertIsInstance(html_node, HTMLNode)
-        self.assertEqual(html_node, HTMLNode(tag, text, None, props))
-        self.assertEqual(str(html_node), f'HTMLNode({tag}, {text}, None, {props})')
+        self.assertEqual(html_node, HTMLNode(tag, expected_text, None, props))
+        self.assertEqual(str(html_node), f'HTMLNode({tag}, {expected_text}, None, {props})')
+
+    def test_text_normal(self):
+        self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_NORMAL)
 
 
     def test_text_bold(self):
-        text = "hello world"
-        text_type = TextType.TEXT_BOLD
-        tag = TextTypeToHTML[text_type.value].value
-
-        url = None
-        props = None
-
-        text_node = TextNode(text, text_type, url)
-        html_node = text_node_to_html_node(text_node)
-
-        self.assertIsInstance(html_node, HTMLNode)
-        self.assertEqual(html_node, HTMLNode(tag, text, None, props))
-        self.assertEqual(str(html_node), f'HTMLNode({tag}, {text}, None, {props})')
+        self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_BOLD)
 
 
     def test_text_italic(self):
-        text = "hello world"
-        text_type = TextType.TEXT_ITALIC
-        tag = TextTypeToHTML[text_type.value].value
-
-        url = None
-        props = None
-
-        text_node = TextNode(text, text_type, url)
-        html_node = text_node_to_html_node(text_node)
-
-        self.assertIsInstance(html_node, HTMLNode)
-        self.assertEqual(html_node, HTMLNode(tag, text, None, props))
-        self.assertEqual(str(html_node), f'HTMLNode({tag}, {text}, None, {props})')
+        self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_ITALIC)
 
 
     def test_text_code(self):
-        text = "hello world"
-        text_type = TextType.TEXT_CODE
-        tag = TextTypeToHTML[text_type.value].value
-
-        url = None
-        props = None
-
-        text_node = TextNode(text, text_type, url)
-        html_node = text_node_to_html_node(text_node)
-
-        self.assertIsInstance(html_node, HTMLNode)
-        self.assertEqual(html_node, HTMLNode(tag, text, None, props))
-        self.assertEqual(str(html_node), f'HTMLNode({tag}, {text}, None, {props})')
+        self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_CODE)
 
 
     def test_text_link(self):
-        text = "hello world"
-        text_type = TextType.LINK
-        tag = TextTypeToHTML[text_type.value].value
-
-        url = "https://www.boot.dev/img/bootdev-logo-full-small.webp"
-        props = {'href': url}
-
-        text_node = TextNode(text, text_type, url)
-        html_node = text_node_to_html_node(text_node)
-
-        self.assertIsInstance(html_node, HTMLNode)
-        self.assertEqual(html_node, HTMLNode(tag, text, None, props))
-        self.assertEqual(str(html_node), f'HTMLNode({tag}, {text}, None, {props})')
+        self._test_text_node_to_html_helper(
+            self.example_text,
+            TextType.LINK,
+            self.example_url,
+            {'href': self.example_url}
+        )
 
 
     def test_text_image(self):
-        text = ""
-        text_type = TextType.IMAGE
-        tag = TextTypeToHTML[text_type.value].value
-
-        url = "https://www.boot.dev/img/bootdev-logo-full-small.webp"
-        alt = "hello world"
-        props = {'src': url, 'alt': alt}
-
-        text_node = TextNode(alt, text_type, url)
-        html_node = text_node_to_html_node(text_node)
-
-        self.assertIsInstance(html_node, HTMLNode)
-        self.assertEqual(html_node, HTMLNode(tag, text, None, props))
-        self.assertEqual(str(html_node), f'HTMLNode({tag}, {text}, None, {props})')
+        self._test_text_node_to_html_helper(
+            self.example_text,
+            TextType.IMAGE,
+            self.example_url,
+            {'src': self.example_url, 'alt': self.example_text},
+            "" # images shoudn't have inner text
+        )
 
 
     def test_text_type_not_implemented(self):
