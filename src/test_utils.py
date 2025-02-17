@@ -15,10 +15,12 @@ class TextTypeToHTML(Enum):
 
 class TestTextNodeToHtmlNode(unittest.TestCase):
 
-    example_text = "hello world"
-    example_url = "https://www.boot.dev/img/bootdev-logo-full-small.webp"
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.example_text = "hello world"
+        cls.example_url = "https://www.boot.dev/img/bootdev-logo-full-small.webp"
 
-    def _test_text_node_to_html_helper(self, text: str, text_type: TextType, url: str | None = None, props: dict | None = None, expected_text: str | None = None):
+    def _test_text_node_to_html_helper(self, text: str, text_type: TextType, url: str | None = None, props: dict | None = None, expected_text: str | None = None) -> None:
         """
         Helper function to test the text_node_to_html_node() function since most tests are the same.
 
@@ -46,6 +48,7 @@ class TestTextNodeToHtmlNode(unittest.TestCase):
         self.assertIsInstance(html_node, HTMLNode)
         self.assertEqual(html_node, HTMLNode(tag, expected_text, None, props))
         self.assertEqual(str(html_node), f'HTMLNode({tag}, {expected_text}, None, {props})')
+
 
     def test_text_normal(self):
         self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_NORMAL)
