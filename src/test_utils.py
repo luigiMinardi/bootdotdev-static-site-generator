@@ -3,7 +3,7 @@ import unittest
 
 from htmlnode import HTMLNode
 from textnode import TextNode, TextType
-from utils import text_node_to_html_node
+from utils import text_node_to_html_node, split_nodes_delimiter
 
 class TextTypeToHTML(Enum):
     normal = None
@@ -94,3 +94,27 @@ class TestTextNodeToHtmlNode(unittest.TestCase):
 
         self.assertEqual(str(cm.exception), 'TextNode of TextType "not_implemented" has not been implemented yet.')
 
+
+
+class TestSplitNodesDelimiter(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.example_url = "https://www.boot.dev/img/bootdev-logo-full-small.webp"
+
+    def test_split_nodes_delimiter(self):
+        nodes_list = [
+                TextNode(
+                    f"***Lorem* ipsum** `dolor` sit* *amet, **consectetur adipiscing* elit**. **[Nunc ultrices aliquet nunc.]({self.example_url})** *`Pellentesque `*`sodales quam` ![odio]({self.example_url}), **quis**** *porta `**massa* condimentum`** ****ut.*",
+                    TextType.TEXT_NORMAL
+                )
+        ]
+        nodes_list2 = [
+                TextNode(
+                    "*foo **\\**** bar*",
+                    TextType.TEXT_NORMAL
+                )
+        ]
+
+        new_list = split_nodes_delimiter(nodes_list, "`", TextType.TEXT_CODE)
+        print(new_list)
+        self.assertEqual(1, 2)
