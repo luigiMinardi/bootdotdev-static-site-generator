@@ -38,7 +38,7 @@ class Delimiters(Enum):
 
 def split_nodes_delimiter(
     old_nodes: Sequence[TextNode], delimiter: str, text_type: TextType
-) -> Sequence[TextNode]:
+) -> None:
     delimiters_debug: dict[str, list[int]] = {
         Delimiters.CODE.value: [],
         Delimiters.ITALIC.value: [],
@@ -103,8 +103,6 @@ def split_nodes_delimiter(
         Delimiters.LINK_MID.value: [],
         Delimiters.LINK_CLOSE.value: [],
     }
-
-    res: Sequence[TextNode] = []
 
     for node in old_nodes:
         for i in range(len(node.text)):
@@ -210,50 +208,40 @@ def split_nodes_delimiter(
                 else:
                     delimiters_right[Delimiters.ITALIC.value].append(i)
 
-        # for i in range(len(delimiters_left[Delimiters.CODE.value])):
-        print(node.text)
-        while len(delimiters_left[Delimiters.CODE.value]) > 0:
-            start = delimiters_left[Delimiters.CODE.value].pop(0)
-            stop = delimiters_right[Delimiters.CODE.value].pop(0)
-            res.append(
-                TextNode(
-                    node.text[start + 1 : stop],
-                    TextType.TEXT_CODE,
-                )
-            )
-            # stop + 1 - start
-            for delimiters in delimiters_left:
-                i = -1
-                delimiter: int
-                for delimiter in reversed(delimiters_left[delimiters]):
-                    # print("testing", delimiter, start)
-                    if delimiter > start:
-                        # print(delimiter - (stop + 1 - start))
-                        if delimiter - (stop + 1 - start) >= 0:
-                            delimiters_left[delimiters][i] = delimiter - (
-                                stop + 1 - start
-                            )
-                            print("hi:", delimiters_left[delimiters][i], i, delimiter)
-                            # print(delimiters_left)
-                    else:
-                        i = i - 1
-                        # print(delimiter, i)
-                        continue
-                    i = i - 1
-            print("start ---", node.text[:start])
-            print("stop ---", node.text[stop + 1 :])
-            node.text = node.text[:start] + node.text[stop + 1 :]
-            print(node.text)
-
-        while len(delimiters_left[Delimiters.CODE.value]) > 0:
-            res.append(
-                TextNode(
-                    node.text[
-                        delimiters_left[Delimiters.CODE.value].pop(0)
-                        + 1 : delimiters_right[Delimiters.CODE.value].pop(0)
-                    ],
-                    TextType.TEXT_CODE,
-                )
-            )
-
     print("left:", delimiters_left, "\nright:", delimiters_right)
+
+
+def split_nodes_delimiter2(
+    old_nodes: Sequence[TextNode], delimiter: str, text_type: TextType
+) -> Sequence[TextNode]:
+
+    res: Sequence[TextNode] = []
+
+    for node in old_nodes:
+        pair: int | None = None
+        print("start", node.text)
+        i = 0
+        while i < len(node.text):
+
+            if node.text[i] == Delimiters.CODE.value and not pair:
+                print("adding pair", i)
+                pair = i
+            elif node.text[i] == Delimiters.CODE.value and pair:
+                print("creating node", pair, i)
+                res.append(
+                    TextNode(
+                        node.text[pair + 1 : i],
+                        TextType.TEXT_CODE,
+                    )
+                )
+                print("s", node.text[: pair + 1])
+                print("e", node.text[i + 1 :])
+                node.text = node.text[:pair] + node.text[i + 1 :]
+                print(node.text)
+                i = i - pair
+                pair = None
+
+            i += 1
+        print("finish", node.text)
+
+    print(res)

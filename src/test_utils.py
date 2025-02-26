@@ -3,7 +3,8 @@ import unittest
 
 from htmlnode import HTMLNode
 from textnode import TextNode, TextType
-from utils import text_node_to_html_node, split_nodes_delimiter
+from utils import text_node_to_html_node, split_nodes_delimiter, split_nodes_delimiter2
+
 
 class TextTypeToHTML(Enum):
     normal = None
@@ -13,6 +14,7 @@ class TextTypeToHTML(Enum):
     link = "a"
     image = "img"
 
+
 class TestTextNodeToHtmlNode(unittest.TestCase):
 
     @classmethod
@@ -20,7 +22,14 @@ class TestTextNodeToHtmlNode(unittest.TestCase):
         cls.example_text = "hello world"
         cls.example_url = "https://www.boot.dev/img/bootdev-logo-full-small.webp"
 
-    def _test_text_node_to_html_helper(self, text: str, text_type: TextType, url: str | None = None, props: dict | None = None, expected_text: str | None = None) -> None:
+    def _test_text_node_to_html_helper(
+        self,
+        text: str,
+        text_type: TextType,
+        url: str | None = None,
+        props: dict | None = None,
+        expected_text: str | None = None,
+    ) -> None:
         """
         Helper function to test the text_node_to_html_node() function since most tests are the same.
 
@@ -43,57 +52,53 @@ class TestTextNodeToHtmlNode(unittest.TestCase):
 
         text_node = TextNode(text, text_type, url)
         html_node = text_node_to_html_node(text_node)
-        
 
         self.assertIsInstance(html_node, HTMLNode)
         self.assertEqual(html_node, HTMLNode(tag, expected_text, None, props))
-        self.assertEqual(str(html_node), f'HTMLNode({tag}, {expected_text}, None, {props})')
-
+        self.assertEqual(
+            str(html_node), f"HTMLNode({tag}, {expected_text}, None, {props})"
+        )
 
     def test_text_normal(self):
         self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_NORMAL)
 
-
     def test_text_bold(self):
         self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_BOLD)
-
 
     def test_text_italic(self):
         self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_ITALIC)
 
-
     def test_text_code(self):
         self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_CODE)
-
 
     def test_text_link(self):
         self._test_text_node_to_html_helper(
             self.example_text,
             TextType.LINK,
             self.example_url,
-            {'href': self.example_url}
+            {"href": self.example_url},
         )
-
 
     def test_text_image(self):
         self._test_text_node_to_html_helper(
             self.example_text,
             TextType.IMAGE,
             self.example_url,
-            {'src': self.example_url, 'alt': self.example_text},
-            "" # images shoudn't have inner text
+            {"src": self.example_url, "alt": self.example_text},
+            "",  # images shoudn't have inner text
         )
 
-
     def test_text_type_not_implemented(self):
-        text_node = TextNode("hello world",TextType.TEXT_CODE)
-        text_node.text_type = "not_implemented" #type: ignore
+        text_node = TextNode("hello world", TextType.TEXT_CODE)
+        text_node.text_type = "not_implemented"  # type: ignore
 
         with self.assertRaises(NotImplementedError) as cm:
             text_node_to_html_node(text_node)
 
-        self.assertEqual(str(cm.exception), 'TextNode of TextType "not_implemented" has not been implemented yet.')
-
+        self.assertEqual(
+            str(cm.exception),
+            'TextNode of TextType "not_implemented" has not been implemented yet.',
+        )
 
 
 class TestSplitNodesDelimiter(unittest.TestCase):
@@ -103,18 +108,14 @@ class TestSplitNodesDelimiter(unittest.TestCase):
 
     def test_split_nodes_delimiter(self):
         nodes_list = [
-                TextNode(
-                    f"***Lorem* ipsum** `dolor` sit* *amet, **consectetur adipiscing* elit**. **[Nunc ultrices aliquet nunc.]({self.example_url})** *`Pellentesque `*`sodales quam` ![odio]({self.example_url}), **quis**** *porta `**massa* condimentum`** ****ut.*",
-                    TextType.TEXT_NORMAL
-                )
+            TextNode(
+                f"***Lorem* ipsum** `dolor` sit* *amet, **consectetur adipiscing* elit**. **[Nunc ultrices aliquet nunc.]({self.example_url})** *`Pellentesque `*`sodales quam` ![odio]({self.example_url}), **quis**** *porta `**massa* condimentum`** ****ut.*",
+                TextType.TEXT_NORMAL,
+            )
         ]
-        nodes_list2 = [
-                TextNode(
-                    "*foo **\\**** bar*",
-                    TextType.TEXT_NORMAL
-                )
-        ]
+        nodes_list2 = [TextNode("*foo **\\**** bar*", TextType.TEXT_NORMAL)]
 
-        new_list = split_nodes_delimiter(nodes_list, "`", TextType.TEXT_CODE)
+        split_nodes_delimiter(nodes_list, "`", TextType.TEXT_CODE)
+        new_list = split_nodes_delimiter2(nodes_list, "`", TextType.TEXT_CODE)
         print(new_list)
         self.assertEqual(1, 2)
