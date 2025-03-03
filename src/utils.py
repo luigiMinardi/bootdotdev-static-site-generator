@@ -219,6 +219,7 @@ def split_nodes_delimiter2(
 
     for node in old_nodes:
         code_pair: int | None = None
+        last_code_symbol: int | None = None
 
         image_start: int | None = None
         image_middle: int | None = None
@@ -230,15 +231,28 @@ def split_nodes_delimiter2(
 
         italic_pair: int | None = None
 
+        transformation_pair: int | None = None
+
         # print("start", node.text)
         i = 0
         while i < len(node.text):
-            print("current", i, node.text[i], node.text)
+            print(
+                "current", i, node.text[i], node.text, code_pair, bold_pair, italic_pair
+            )
 
-            if bold_pair == None:
-                if node.text[i] == Delimiters.CODE.value and code_pair == None:
-                    code_pair = i
-                elif node.text[i] == Delimiters.CODE.value and code_pair != None:
+            if node.text[i] == Delimiters.CODE.value:
+                last_code_symbol = i
+
+            if node.text[i] == Delimiters.CODE.value and code_pair == None:
+                print("code start", i)
+                code_pair = i
+
+            if bold_pair == None and italic_pair == None:
+                if (
+                    node.text[i] == Delimiters.CODE.value
+                    and code_pair != None
+                    and i != code_pair
+                ):
                     # print("code text start", node.text)
                     print("code end", i)
                     res.append(
@@ -323,6 +337,7 @@ def split_nodes_delimiter2(
                     and node.text[i + 1] == Delimiters.ITALIC.value  # BOLD
                     and node.text[i + 2] != " "  # left delimiter (start)
                     and bold_pair == None
+                    and code_pair == None
                 ):
                     bold_pair = i
                     print("open bold", i)
@@ -333,50 +348,111 @@ def split_nodes_delimiter2(
                     and node.text[i - 1] != Delimiters.ITALIC.value
                     and node.text[i - 1] != " "  # right delimiter (end)
                     and bold_pair != None
+                    and i != bold_pair
                 ):
-                    print("bold end", i)
-                    """
-                    print("bold text start", node.text)
-                    print(bold_pair, i)
-                    print("bold:", node.text[bold_pair + 2 : i])
-
-                    """
-                    res.append(
-                        TextNode(
-                            node.text[bold_pair + 2 : i],
-                            TextType.TEXT_BOLD,
+                    if transformation_pair != None and italic_pair != None:
+                        print(
+                            "handling situation",
+                            italic_pair,
+                            bold_pair,
+                            transformation_pair,
+                            i,
                         )
-                    )
-                    """
-                    print("s", node.text[:bold_pair])
-                    print("e", node.text[i + 2 :])
-                    print("rep", i - (i - bold_pair))
-                    """
-                    node.text = node.text[:bold_pair] + node.text[i + 2 :]
-                    i -= (i + 1) - bold_pair
-                    bold_pair = None
+
+                        res.append(
+                            TextNode(
+                                node.text[italic_pair + 1 : i + 1],
+                                TextType.TEXT_ITALIC,
+                            )
+                        )
+                        print("s", node.text[:italic_pair])
+                        print("e", node.text[i + 2 :])
+                        print("rep", i - ((i + 1) - italic_pair))
+                        node.text = node.text[:italic_pair] + node.text[i + 2 :]
+                        i -= (i + 1) - italic_pair
+
+                        italic_pair = None
+                        bold_pair = None
+                        transformation_pair = None
+                    else:
+                        if code_pair == None or code_pair != last_code_symbol:
+                            print("bold end", i)
+                            """
+                            print("bold text start", node.text)
+                            print(bold_pair, i)
+                            print("bold:", node.text[bold_pair + 2 : i])
+                            """
+                            res.append(
+                                TextNode(
+                                    node.text[bold_pair + 2 : i],
+                                    TextType.TEXT_BOLD,
+                                )
+                            )
+                            """
+                            print("s", node.text[:bold_pair])
+                            print("e", node.text[i + 2 :])
+                            print("rep", i - (i - bold_pair))
+                            """
+                            node.text = node.text[:bold_pair] + node.text[i + 2 :]
+                            i -= (i + 1) - bold_pair
+                            italic_pair = None
+                            code_pair = None
+                            bold_pair = None
 
                 if (
                     node.text[i] == Delimiters.ITALIC.value
+                    and node.text[i + 1] != Delimiters.ITALIC.value  # ITALIC
                     and node.text[i + 1] != " "  # left delimiter (start)
                     and italic_pair == None
                     and bold_pair == None
+                    and code_pair == None
                 ):
                     italic_pair = i
+                    print("open italic", i)
+
             if (
                 node.text[i] == Delimiters.ITALIC.value
                 and node.text[i - 1] != " "  # right delimiter (end)
+                and node.text[i - 1] != Delimiters.ITALIC.value  # not end of BOLD
                 and italic_pair != None
-                and bold_pair == None
             ):
-                pass
+                if bold_pair != None and italic_pair < bold_pair:
+                    print("we have a situation")
+                    transformation_pair = i
+                else:
+                    if code_pair == None or code_pair != last_code_symbol:
+                        print("close italic", i)
+                        print("italic text start", node.text)
+                        print(italic_pair, i)
+                        print("italic:", node.text[italic_pair + 1 : i])
+                        if node.text[italic_pair + 1] == Delimiters.ITALIC.value:
+                            italic_pair += 1
+                        res.append(
+                            TextNode(
+                                node.text[italic_pair + 1 : i],
+                                TextType.TEXT_ITALIC,
+                            )
+                        )
+                        print("s", node.text[:italic_pair])
+                        print("e", node.text[i + 1 :])
+                        print("rep", i - (i - italic_pair))
+                        node.text = node.text[:italic_pair] + node.text[i + 1 :]
+                        i -= (i + 1) - italic_pair
+                        italic_pair = None
+                        code_pair = None
+                        bold_pair = None
 
             if i + 1 >= len(node.text):
                 print("finish line")
                 if bold_pair != None:
                     print("unmatch bold")
+                    italic_pair = bold_pair  # try italic since bold unmatched
                     i = bold_pair
                     bold_pair = None
+                elif italic_pair != None:
+                    print("unmatch italic")
+                    i = italic_pair
+                    italic_pair = None
                 i += 1
                 continue
 
