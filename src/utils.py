@@ -219,90 +219,166 @@ def split_nodes_delimiter2(
 
     for node in old_nodes:
         code_pair: int | None = None
+
         image_start: int | None = None
         image_middle: int | None = None
+
         link_start: int | None = None
         link_middle: int | None = None
+
+        bold_pair: int | None = None
+
+        italic_pair: int | None = None
+
         # print("start", node.text)
         i = 0
         while i < len(node.text):
+            print("current", i, node.text[i], node.text)
 
-            if node.text[i] == Delimiters.CODE.value and not code_pair:
-                code_pair = i
-            elif node.text[i] == Delimiters.CODE.value and code_pair:
-                # print("code text start", node.text)
-                res.append(
-                    TextNode(
-                        node.text[code_pair + 1 : i],
-                        TextType.TEXT_CODE,
-                    )
-                )
-                # print("s", node.text[: code_pair])
-                # print("e", node.text[i + 1 :])
-                node.text = node.text[:code_pair] + node.text[i + 1 :]
-                i -= i - code_pair
-                code_pair = None
-
-            if i + 1 < len(node.text):
-                if (
-                    node.text[i] == "!"
-                    and node.text[i + 1] == Delimiters.LINK.value
-                    and not image_start
-                ):
-                    image_start = i
-                elif node.text[i] == "]" and node.text[i + 1] == "(" and image_start:
-                    image_middle = i
-
-                if (
-                    node.text[i - 1] != "!"
-                    and node.text[i] == Delimiters.LINK.value
-                    and not link_start
-                ):
-                    link_start = i
-                elif node.text[i] == "]" and node.text[i + 1] == "(" and link_start:
-                    link_middle = i
-
-                if (
-                    node.text[i] == Delimiters.LINK_CLOSE.value
-                    and image_start
-                    and image_middle
-                ):
+            if bold_pair == None:
+                if node.text[i] == Delimiters.CODE.value and code_pair == None:
+                    code_pair = i
+                elif node.text[i] == Delimiters.CODE.value and code_pair != None:
+                    # print("code text start", node.text)
+                    print("code end", i)
                     res.append(
                         TextNode(
-                            node.text[image_start + 2 : image_middle],
-                            TextType.IMAGE,
-                            node.text[image_middle + 2 : i],
+                            node.text[code_pair + 1 : i],
+                            TextType.TEXT_CODE,
                         )
                     )
-                    node.text = node.text[:image_start] + node.text[i + 1 :]
-                    i -= i - image_start
-                    image_start = None
-                    image_middle = None
+                    # print("s", node.text[: code_pair])
+                    # print("e", node.text[i + 1 :])
+                    node.text = node.text[:code_pair] + node.text[i + 1 :]
+                    i -= (i + 1) - code_pair
+                    code_pair = None
+
+                if code_pair != None:
+                    if i + 1 >= len(node.text):
+                        i = code_pair
+                        code_pair = None
+                    i += 1
+                    continue
+
+                if i + 1 < len(node.text):
+                    if (
+                        node.text[i] == "!"
+                        and node.text[i + 1] == Delimiters.LINK.value
+                        and image_start == None
+                    ):
+                        image_start = i
+                    elif (
+                        node.text[i] == "]" and node.text[i + 1] == "(" and image_start
+                    ):
+                        image_middle = i
+
+                    if (
+                        node.text[i - 1] != "!"
+                        and node.text[i] == Delimiters.LINK.value
+                        and link_start == None
+                    ):
+                        link_start = i
+                    elif node.text[i] == "]" and node.text[i + 1] == "(" and link_start:
+                        link_middle = i
+
+                    if (
+                        node.text[i] == Delimiters.LINK_CLOSE.value
+                        and image_start != None
+                        and image_middle != None
+                    ):
+                        print("image end", i)
+                        res.append(
+                            TextNode(
+                                node.text[image_start + 2 : image_middle],
+                                TextType.IMAGE,
+                                node.text[image_middle + 2 : i],
+                            )
+                        )
+                        node.text = node.text[:image_start] + node.text[i + 1 :]
+                        i -= (i + 1) - image_start
+                        image_start = None
+                        image_middle = None
+
+                    if (
+                        node.text[i] == Delimiters.LINK_CLOSE.value
+                        and link_start != None
+                        and link_middle != None
+                    ):
+                        print("link end", i)
+                        res.append(
+                            TextNode(
+                                node.text[link_start + 1 : link_middle],
+                                TextType.LINK,
+                                node.text[link_middle + 2 : i],
+                            )
+                        )
+                        node.text = node.text[:link_start] + node.text[i + 1 :]
+                        i -= (i + 1) - link_start
+                        link_start = None
+                        link_middle = None
+
+            if i + 2 < len(node.text):
+                if (
+                    node.text[i] == Delimiters.ITALIC.value
+                    and node.text[i + 1] == Delimiters.ITALIC.value  # BOLD
+                    and node.text[i + 2] != " "  # left delimiter (start)
+                    and bold_pair == None
+                ):
+                    bold_pair = i
+                    print("open bold", i)
 
                 if (
-                    node.text[i] == Delimiters.LINK_CLOSE.value
-                    and link_start
-                    and link_middle
+                    node.text[i] == Delimiters.ITALIC.value
+                    and node.text[i + 1] == Delimiters.ITALIC.value  # BOLD
+                    and node.text[i - 1] != Delimiters.ITALIC.value
+                    and node.text[i - 1] != " "  # right delimiter (end)
+                    and bold_pair != None
                 ):
-                    print("link text start", node.text)
-                    print(link_start, link_middle, i)
-                    print("alt", node.text[link_start + 1 : link_middle])
-                    print("src", node.text[link_middle + 2 : i])
+                    print("bold end", i)
+                    """
+                    print("bold text start", node.text)
+                    print(bold_pair, i)
+                    print("bold:", node.text[bold_pair + 2 : i])
+
+                    """
                     res.append(
                         TextNode(
-                            node.text[link_start + 1 : link_middle],
-                            TextType.LINK,
-                            node.text[link_middle + 2 : i],
+                            node.text[bold_pair + 2 : i],
+                            TextType.TEXT_BOLD,
                         )
                     )
-                    print("s", node.text[:link_start])
-                    print("e", node.text[i + 1 :])
-                    print("res", node.text[:link_start] + node.text[i + 1 :])
-                    print(i - (i - link_start))
-                    node.text = node.text[:link_start] + node.text[i + 1 :]
-                    i -= i - link_start
-                    image_start = None
-                    image_middle = None
+                    """
+                    print("s", node.text[:bold_pair])
+                    print("e", node.text[i + 2 :])
+                    print("rep", i - (i - bold_pair))
+                    """
+                    node.text = node.text[:bold_pair] + node.text[i + 2 :]
+                    i -= (i + 1) - bold_pair
+                    bold_pair = None
+
+                if (
+                    node.text[i] == Delimiters.ITALIC.value
+                    and node.text[i + 1] != " "  # left delimiter (start)
+                    and italic_pair == None
+                    and bold_pair == None
+                ):
+                    italic_pair = i
+            if (
+                node.text[i] == Delimiters.ITALIC.value
+                and node.text[i - 1] != " "  # right delimiter (end)
+                and italic_pair != None
+                and bold_pair == None
+            ):
+                pass
+
+            if i + 1 >= len(node.text):
+                print("finish line")
+                if bold_pair != None:
+                    print("unmatch bold")
+                    i = bold_pair
+                    bold_pair = None
+                i += 1
+                continue
 
             i += 1
         print("finish", node.text)
