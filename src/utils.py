@@ -232,13 +232,57 @@ def split_nodes_delimiter2(
         italic_pair: int | None = None
 
         transformation_pair: int | None = None
+        looking_for_pair: tuple[int, Delimiters] | None = None
 
         # print("start", node.text)
         i = 0
         while i < len(node.text):
             print(
-                "current", i, node.text[i], node.text, code_pair, bold_pair, italic_pair
+                "current",
+                i,
+                node.text[i],
+                node.text,
+                code_pair,
+                bold_pair,
+                italic_pair,
+                looking_for_pair,
             )
+            if (
+                i != 0
+                and looking_for_pair != None
+                and looking_for_pair[0] > 0
+                and len(node.text[0 : looking_for_pair[0]]) > 0
+            ):
+                print(
+                    "normal",
+                    i,
+                    looking_for_pair,
+                    "'",
+                    node.text[0 : looking_for_pair[0]],
+                    "'",
+                )
+                res.append(
+                    TextNode(
+                        node.text[0 : looking_for_pair[0]],
+                        TextType.TEXT_NORMAL,
+                    )
+                )
+                print(node.text[looking_for_pair[0] :])
+                node.text = node.text[looking_for_pair[0] :]
+                match looking_for_pair[1]:
+                    case Delimiters.CODE:
+                        code_pair = 0
+                    case Delimiters.BOLD:
+                        bold_pair = 0
+                    case Delimiters.ITALIC:
+                        italic_pair = 0
+                    case Delimiters.IMAGE:
+                        image_start = 0
+                    case Delimiters.LINK:
+                        link_start = 0
+                i = 0
+                looking_for_pair = None
+                continue
 
             if node.text[i] == Delimiters.CODE.value:
                 last_code_symbol = i
@@ -247,9 +291,13 @@ def split_nodes_delimiter2(
                 print("code start", i)
                 code_pair = i
 
+                if italic_pair == None and bold_pair == None:
+                    looking_for_pair = (i, Delimiters.CODE)
+
             if bold_pair == None and italic_pair == None:
                 if (
-                    node.text[i] == Delimiters.CODE.value
+                    i > 0
+                    and node.text[i] == Delimiters.CODE.value
                     and code_pair != None
                     and i != code_pair
                 ):
@@ -264,8 +312,9 @@ def split_nodes_delimiter2(
                     # print("s", node.text[: code_pair])
                     # print("e", node.text[i + 1 :])
                     node.text = node.text[:code_pair] + node.text[i + 1 :]
-                    i -= (i + 1) - code_pair
+                    i = 0
                     code_pair = None
+                    continue
 
                 if code_pair != None:
                     if i + 1 >= len(node.text):
@@ -281,6 +330,8 @@ def split_nodes_delimiter2(
                         and image_start == None
                     ):
                         image_start = i
+                        looking_for_pair = (i, Delimiters.IMAGE)
+                        print("img start", i)
                     elif (
                         node.text[i] == "]" and node.text[i + 1] == "(" and image_start
                     ):
@@ -292,6 +343,8 @@ def split_nodes_delimiter2(
                         and link_start == None
                     ):
                         link_start = i
+                        looking_for_pair = (i, Delimiters.LINK)
+                        print("link start", i)
                     elif node.text[i] == "]" and node.text[i + 1] == "(" and link_start:
                         link_middle = i
 
@@ -309,9 +362,10 @@ def split_nodes_delimiter2(
                             )
                         )
                         node.text = node.text[:image_start] + node.text[i + 1 :]
-                        i -= (i + 1) - image_start
+                        i = 0
                         image_start = None
                         image_middle = None
+                        continue
 
                     if (
                         node.text[i] == Delimiters.LINK_CLOSE.value
@@ -327,9 +381,11 @@ def split_nodes_delimiter2(
                             )
                         )
                         node.text = node.text[:link_start] + node.text[i + 1 :]
-                        i -= (i + 1) - link_start
+
+                        i = 0
                         link_start = None
                         link_middle = None
+                        continue
 
             if i + 2 < len(node.text):
                 if (
@@ -340,10 +396,13 @@ def split_nodes_delimiter2(
                     and code_pair == None
                 ):
                     bold_pair = i
+                    if italic_pair == None:
+                        looking_for_pair = (i, Delimiters.BOLD)
                     print("open bold", i)
 
                 if (
-                    node.text[i] == Delimiters.ITALIC.value
+                    i > 0
+                    and node.text[i] == Delimiters.ITALIC.value
                     and node.text[i + 1] == Delimiters.ITALIC.value  # BOLD
                     and node.text[i - 1] != Delimiters.ITALIC.value
                     and node.text[i - 1] != " "  # right delimiter (end)
@@ -365,15 +424,18 @@ def split_nodes_delimiter2(
                                 TextType.TEXT_ITALIC,
                             )
                         )
+                        print("sit", node.text[italic_pair + 1 : i + 1])
+
                         print("s", node.text[:italic_pair])
                         print("e", node.text[i + 2 :])
-                        print("rep", i - ((i + 1) - italic_pair))
                         node.text = node.text[:italic_pair] + node.text[i + 2 :]
-                        i -= (i + 1) - italic_pair
+                        print("handled", node.text)
+                        i = 0
 
                         italic_pair = None
                         bold_pair = None
                         transformation_pair = None
+                        continue
                     else:
                         if code_pair == None or code_pair != last_code_symbol:
                             print("bold end", i)
@@ -391,13 +453,13 @@ def split_nodes_delimiter2(
                             """
                             print("s", node.text[:bold_pair])
                             print("e", node.text[i + 2 :])
-                            print("rep", i - (i - bold_pair))
                             """
                             node.text = node.text[:bold_pair] + node.text[i + 2 :]
-                            i -= (i + 1) - bold_pair
+                            i = 0
                             italic_pair = None
                             code_pair = None
                             bold_pair = None
+                            continue
 
                 if (
                     node.text[i] == Delimiters.ITALIC.value
@@ -408,23 +470,24 @@ def split_nodes_delimiter2(
                     and code_pair == None
                 ):
                     italic_pair = i
+                    looking_for_pair = (i, Delimiters.ITALIC)
+
                     print("open italic", i)
 
             if (
-                node.text[i] == Delimiters.ITALIC.value
+                i > 0
+                and node.text[i] == Delimiters.ITALIC.value
                 and node.text[i - 1] != " "  # right delimiter (end)
                 and node.text[i - 1] != Delimiters.ITALIC.value  # not end of BOLD
                 and italic_pair != None
+                and i != italic_pair
             ):
                 if bold_pair != None and italic_pair < bold_pair:
                     print("we have a situation")
                     transformation_pair = i
                 else:
+                    print("italic end", i)
                     if code_pair == None or code_pair != last_code_symbol:
-                        print("close italic", i)
-                        print("italic text start", node.text)
-                        print(italic_pair, i)
-                        print("italic:", node.text[italic_pair + 1 : i])
                         if node.text[italic_pair + 1] == Delimiters.ITALIC.value:
                             italic_pair += 1
                         res.append(
@@ -433,25 +496,25 @@ def split_nodes_delimiter2(
                                 TextType.TEXT_ITALIC,
                             )
                         )
-                        print("s", node.text[:italic_pair])
-                        print("e", node.text[i + 1 :])
-                        print("rep", i - (i - italic_pair))
                         node.text = node.text[:italic_pair] + node.text[i + 1 :]
-                        i -= (i + 1) - italic_pair
+                        i = 0
                         italic_pair = None
                         code_pair = None
                         bold_pair = None
+                        continue
 
             if i + 1 >= len(node.text):
                 print("finish line")
                 if bold_pair != None:
-                    print("unmatch bold")
+                    print("unmatch bold", i, bold_pair, looking_for_pair)
                     italic_pair = bold_pair  # try italic since bold unmatched
+                    # looking_for_pair = bold_pair
                     i = bold_pair
                     bold_pair = None
                 elif italic_pair != None:
-                    print("unmatch italic")
+                    print("unmatch italic", i, italic_pair, looking_for_pair)
                     i = italic_pair
+                    # looking_for_pair = italic_pair
                     italic_pair = None
                 i += 1
                 continue
@@ -460,3 +523,4 @@ def split_nodes_delimiter2(
         print("finish", node.text)
 
     print(res)
+    return res

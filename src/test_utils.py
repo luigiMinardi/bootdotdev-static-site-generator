@@ -117,30 +117,8 @@ class TestSplitNodesDelimiter(unittest.TestCase):
 
         split_nodes_delimiter(nodes_list, "`", TextType.TEXT_CODE)
         new_list = split_nodes_delimiter2(nodes_list, "`", TextType.TEXT_CODE)
-        res = [
-            TextNode("*Lorem* ipsum", TextType.TEXT_BOLD, None),
-            TextNode("dolor", TextType.TEXT_CODE, None),
-            TextNode(
-                "amet, **consectetur adipiscing* elit*", TextType.TEXT_ITALIC, None
-            ),
-            TextNode(
-                "[Nunc ultrices aliquet nunc.](https://www.boot.dev/img/bootdev-logo-full-small.webp)",
-                TextType.TEXT_BOLD,
-                None,
-            ),
-            TextNode("`Pellentesque `", TextType.TEXT_ITALIC, None),
-            TextNode("sodales quam", TextType.TEXT_CODE, None),
-            TextNode(
-                "odio",
-                TextType.IMAGE,
-                "https://www.boot.dev/img/bootdev-logo-full-small.webp",
-            ),
-            TextNode("quis", TextType.TEXT_BOLD, None),
-            TextNode("porta `**massa* condimentum`", TextType.TEXT_ITALIC, None),
-            TextNode("ut.", TextType.TEXT_ITALIC, None),
-        ]
-        for node in res:
+
+        for node in new_list:
             html = text_node_to_html_node(node)
             print(html.to_html())
-        print(new_list)
         self.assertEqual(1, 2)
