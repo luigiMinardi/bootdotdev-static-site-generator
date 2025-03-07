@@ -245,6 +245,8 @@ def split_nodes_delimiter2(
                 code_pair,
                 bold_pair,
                 italic_pair,
+                image_start,
+                link_middle,
                 looking_for_pair,
             )
             if (
@@ -333,7 +335,9 @@ def split_nodes_delimiter2(
                         looking_for_pair = (i, Delimiters.IMAGE)
                         print("img start", i)
                     elif (
-                        node.text[i] == "]" and node.text[i + 1] == "(" and image_start
+                        node.text[i] == "]"
+                        and node.text[i + 1] == "("
+                        and image_start != None
                     ):
                         image_middle = i
 
@@ -345,7 +349,11 @@ def split_nodes_delimiter2(
                         link_start = i
                         looking_for_pair = (i, Delimiters.LINK)
                         print("link start", i)
-                    elif node.text[i] == "]" and node.text[i + 1] == "(" and link_start:
+                    elif (
+                        node.text[i] == "]"
+                        and node.text[i + 1] == "("
+                        and link_start != None
+                    ):
                         link_middle = i
 
                     if (
@@ -514,7 +522,7 @@ def split_nodes_delimiter2(
                 elif italic_pair != None:
                     print("unmatch italic", i, italic_pair, looking_for_pair)
                     i = italic_pair
-                    # looking_for_pair = italic_pair
+                    # looking_for_pair = (italic_pair, Delimiters.ITALIC)
                     italic_pair = None
                 i += 1
                 continue
