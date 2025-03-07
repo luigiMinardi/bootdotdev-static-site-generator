@@ -36,9 +36,7 @@ class Delimiters(Enum):
     LINK_CLOSE = ")"
 
 
-def split_nodes_delimiter(
-    old_nodes: Sequence[TextNode], delimiter: str, text_type: TextType
-) -> None:
+def _split_nodes_debug(old_nodes: Sequence[TextNode]) -> None:
     delimiters_debug: dict[str, list[int]] = {
         Delimiters.CODE.value: [],
         Delimiters.ITALIC.value: [],
@@ -211,9 +209,11 @@ def split_nodes_delimiter(
     print("left:", delimiters_left, "\nright:", delimiters_right)
 
 
-def split_nodes_delimiter2(
-    old_nodes: Sequence[TextNode], delimiter: str, text_type: TextType
-) -> Sequence[TextNode]:
+def split_all_nodes(nodes: Sequence[TextNode]) -> Sequence[TextNode]:
+    pass
+
+
+def split_nodes(old_nodes: Sequence[TextNode]) -> Sequence[TextNode]:
 
     res: Sequence[TextNode] = []
 
@@ -491,7 +491,7 @@ def split_nodes_delimiter2(
                 and i != italic_pair
             ):
                 if bold_pair != None and italic_pair < bold_pair:
-                    print("we have a situation")
+                    print("we have a situation", i)
                     transformation_pair = i
                 else:
                     print("italic end", i)
@@ -514,9 +514,27 @@ def split_nodes_delimiter2(
             if i + 1 >= len(node.text):
                 print("finish line")
                 if bold_pair != None:
-                    print("unmatch bold", i, bold_pair, looking_for_pair)
+                    print(
+                        "unmatch bold",
+                        i,
+                        bold_pair,
+                        looking_for_pair,
+                        transformation_pair,
+                    )
+                    if transformation_pair != None and italic_pair != None:
+                        res.append(
+                            TextNode(
+                                node.text[italic_pair + 1 : i],
+                                TextType.TEXT_ITALIC,
+                            )
+                        )
+                        node.text = node.text[:italic_pair] + node.text[i + 1 :]
+                        transformation_pair = None
+
                     if bold_pair + 2 <= len(node.text):
-                        if node.text[bold_pair + 2] != Delimiters.ITALIC.value:
+                        if (
+                            node.text[bold_pair + 2] != Delimiters.ITALIC.value
+                        ):  # Not another bold possibility
                             italic_pair = bold_pair  # try italic since bold unmatched
                     looking_for_pair = (bold_pair + 1, Delimiters.BOLD)
                     i = bold_pair
@@ -532,5 +550,4 @@ def split_nodes_delimiter2(
             i += 1
         print("finish", node.text)
 
-    print(res)
     return res

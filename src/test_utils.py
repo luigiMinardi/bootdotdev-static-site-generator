@@ -3,7 +3,7 @@ import unittest
 
 from htmlnode import HTMLNode
 from textnode import TextNode, TextType
-from utils import text_node_to_html_node, split_nodes_delimiter, split_nodes_delimiter2
+from utils import text_node_to_html_node, _split_nodes_debug, split_nodes
 
 
 class TextTypeToHTML(Enum):
@@ -101,24 +101,32 @@ class TestTextNodeToHtmlNode(unittest.TestCase):
         )
 
 
-class TestSplitNodesDelimiter(unittest.TestCase):
+class TestSplitNodes(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.example_url = "https://www.boot.dev/img/bootdev-logo-full-small.webp"
 
-    def test_split_nodes_delimiter(self):
+    def test_split_nodes(self):
         nodes_list = [
             TextNode(
                 f"***Lorem* ipsum** `dolor` sit* *amet, **consectetur adipiscing* elit**. **[Nunc ultrices aliquet nunc.]({self.example_url})** *`Pellentesque `*`sodales quam` ![odio]({self.example_url}), **quis**** *porta `**massa* condimentum`** ****ut.*",
                 TextType.TEXT_NORMAL,
             )
         ]
-        nodes_list2 = [TextNode("*foo **\\**** bar*", TextType.TEXT_NORMAL)]
+        nodes_list2 = [TextNode("*foo**bar*", TextType.TEXT_NORMAL)]
 
-        split_nodes_delimiter(nodes_list, "`", TextType.TEXT_CODE)
-        new_list = split_nodes_delimiter2(nodes_list, "`", TextType.TEXT_CODE)
+        _split_nodes_debug(nodes_list)
+        new_list = split_nodes(nodes_list)
+        print(new_list)
 
         for node in new_list:
+            html = text_node_to_html_node(node)
+            print(html.to_html())
+
+        new_list2 = split_nodes(nodes_list2)
+        print(new_list2)
+
+        for node in new_list2:
             html = text_node_to_html_node(node)
             print(html.to_html())
         self.assertEqual(1, 2)
