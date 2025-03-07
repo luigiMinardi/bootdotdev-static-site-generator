@@ -406,7 +406,7 @@ def split_nodes_delimiter2(
                     bold_pair = i
                     if italic_pair == None:
                         looking_for_pair = (i, Delimiters.BOLD)
-                    print("open bold", i)
+                    print("open bold", i, "'", node.text, "'")
 
                 if (
                     i > 0
@@ -515,14 +515,16 @@ def split_nodes_delimiter2(
                 print("finish line")
                 if bold_pair != None:
                     print("unmatch bold", i, bold_pair, looking_for_pair)
-                    italic_pair = bold_pair  # try italic since bold unmatched
-                    # looking_for_pair = bold_pair
+                    if bold_pair + 2 <= len(node.text):
+                        if node.text[bold_pair + 2] != Delimiters.ITALIC.value:
+                            italic_pair = bold_pair  # try italic since bold unmatched
+                    looking_for_pair = (bold_pair + 1, Delimiters.BOLD)
                     i = bold_pair
                     bold_pair = None
                 elif italic_pair != None:
                     print("unmatch italic", i, italic_pair, looking_for_pair)
                     i = italic_pair
-                    # looking_for_pair = (italic_pair, Delimiters.ITALIC)
+                    looking_for_pair = (italic_pair, Delimiters.ITALIC)
                     italic_pair = None
                 i += 1
                 continue
