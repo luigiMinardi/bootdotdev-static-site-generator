@@ -3,7 +3,12 @@ import unittest
 
 from htmlnode import HTMLNode
 from textnode import TextNode, TextType
-from utils import text_node_to_html_node, _split_nodes_debug, split_nodes
+from utils import (
+    text_node_to_html_node,
+    _split_nodes_debug,
+    split_node,
+    check_need_to_split_node,
+)
 
 
 class TextTypeToHTML(Enum):
@@ -101,32 +106,59 @@ class TestTextNodeToHtmlNode(unittest.TestCase):
         )
 
 
-class TestSplitNodes(unittest.TestCase):
+class TestSplitNode(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.example_url = "https://www.boot.dev/img/bootdev-logo-full-small.webp"
 
-    def test_split_nodes(self):
-        nodes_list = [
+    def test_split_node(self):
+        node = TextNode(
+            f"***Lorem* ipsum** `dolor` sit* *amet, **consectetur adipiscing* elit**. **[Nunc ultrices aliquet nunc.]({self.example_url})** *`Pellentesque `*`sodales quam` ![odio]({self.example_url}), **quis**** *porta `**massa* condimentum`** ****ut.*",
+            TextType.TEXT_NORMAL,
+        )
+
+        node_list_res = [
+            TextNode("*Lorem* ipsum", TextType.TEXT_BOLD, None),
+            TextNode(" ", TextType.TEXT_NORMAL, None),
+            TextNode("dolor", TextType.TEXT_CODE, None),
+            TextNode(" sit* ", TextType.TEXT_NORMAL, None),
             TextNode(
-                f"***Lorem* ipsum** `dolor` sit* *amet, **consectetur adipiscing* elit**. **[Nunc ultrices aliquet nunc.]({self.example_url})** *`Pellentesque `*`sodales quam` ![odio]({self.example_url}), **quis**** *porta `**massa* condimentum`** ****ut.*",
-                TextType.TEXT_NORMAL,
-            )
+                "amet, **consectetur adipiscing* elit*", TextType.TEXT_ITALIC, None
+            ),
+            TextNode(". ", TextType.TEXT_NORMAL, None),
+            TextNode(
+                "[Nunc ultrices aliquet nunc.](https://www.boot.dev/img/bootdev-logo-full-small.webp)",
+                TextType.TEXT_BOLD,
+                None,
+            ),
+            TextNode(" ", TextType.TEXT_NORMAL, None),
+            TextNode("`Pellentesque `", TextType.TEXT_ITALIC, None),
+            TextNode("sodales quam", TextType.TEXT_CODE, None),
+            TextNode(" ", TextType.TEXT_NORMAL, None),
+            TextNode(
+                "odio",
+                TextType.IMAGE,
+                "https://www.boot.dev/img/bootdev-logo-full-small.webp",
+            ),
+            TextNode(", ", TextType.TEXT_NORMAL, None),
+            TextNode("quis", TextType.TEXT_BOLD, None),
+            TextNode("** ", TextType.TEXT_NORMAL, None),
+            TextNode("porta `**massa* condimentum`", TextType.TEXT_ITALIC, None),
+            TextNode("* ", TextType.TEXT_NORMAL, None),
+            TextNode("*", TextType.TEXT_NORMAL, None),
+            TextNode("*", TextType.TEXT_NORMAL, None),
+            TextNode("*", TextType.TEXT_NORMAL, None),
+            TextNode("ut.", TextType.TEXT_ITALIC, None),
         ]
-        nodes_list2 = [TextNode("*foo**bar*", TextType.TEXT_NORMAL)]
 
-        _split_nodes_debug(nodes_list)
-        new_list = split_nodes(nodes_list)
-        print(new_list)
+        new_list = split_node(node)
 
-        for node in new_list:
-            html = text_node_to_html_node(node)
-            print(html.to_html())
+        self.assertEqual(new_list, node_list_res)
 
-        new_list2 = split_nodes(nodes_list2)
-        print(new_list2)
+        node2 = TextNode("*foo**bar*", TextType.TEXT_NORMAL)
+        node_list2_res = [TextNode("foo**bar", TextType.TEXT_ITALIC, None)]
 
-        for node in new_list2:
-            html = text_node_to_html_node(node)
-            print(html.to_html())
-        self.assertEqual(1, 2)
+        check_need_to_split_node(node2)
+        new_list2 = split_node(node2)
+
+        self.assertEqual(new_list2, node_list2_res)
