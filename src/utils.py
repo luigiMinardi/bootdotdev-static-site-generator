@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Generator
 from enum import Enum
 from htmlnode import HTMLNode
 from leafnode import LeafNode
@@ -22,7 +22,8 @@ def text_node_to_html_node(text_node: TextNode) -> HTMLNode:
             return LeafNode("", "img", {"src": text_node.url, "alt": text_node.text})
         case _:
             raise NotImplementedError(
-                f'TextNode of TextType "{text_node.text_type}" has not been implemented yet.'
+                f'TextNode of TextType "{
+                    text_node.text_type}" has not been implemented yet.'
             )
 
 
@@ -36,518 +37,76 @@ class Delimiters(Enum):
     LINK_CLOSE = ")"
 
 
-def _split_nodes_debug(old_nodes: Sequence[TextNode]) -> None:
-    delimiters_debug: dict[str, list[int]] = {
-        Delimiters.CODE.value: [],
-        Delimiters.ITALIC.value: [],
-        Delimiters.BOLD.value: [],
-        Delimiters.LINK.value: [],
-        Delimiters.IMAGE.value: [],
-        Delimiters.LINK_MID.value: [],
-        Delimiters.LINK_CLOSE.value: [],
-    }
+def find_all(string: str, value: str) -> Generator[int]:
+    """
+    Generator that find the index of "value" inside a given "string" and yields
+    it.
 
+    Examples:
+
+    - Finding all values:
+    all_values: list[int] = list(find_all("foo bar bazz bar", bar))
+    print(all_values) # [7, 18, 34, 40]
+
+    - Getting first value:
+     generator: Generator[int] = find_all("foo bar bazz bar", bar)
+     first: int = next(generator).
+     print(first) # 7
+
+    - Calling in a loop:
+    generator: Generator[int] = find_all("foo bar bazz bar", bar)
+    for i in generator:
+        if i > 20:
+            break;
+        print(i) # 7, then 18, breaks before 34, consuming it.
+    next(generator) # 40, the 34 was consumed inside the loop.
+
+    - Avoiding consuming in a loop
+    The way to avoid the loop to call next is by breaking after you did your
+    logic making sure the loop will not continue to another iteration
+
+    generator: Generator[int] = find_all("foo bar bazz bar", bar)
+    result_list: list[int] = []
+    results.append(i)
+    for i in generator:
+        result_list.append(i) # [7, 18]
+        if len(i) >= 2:
+            break;
+    next(generator) # 34
+
+    Arguments:
+        string (str): string to search
+        value (str): value to be searched
+    Return (Yield):
+        Generator[int]: the index representing the beginning of the value in
+        the "string"
+    """
+    start = 0
+    while True:
+        start = string.find(value, start)
+        if start == -1:
+            return
+        yield start
+        start += len(value)
+
+
+def split_nodes_delimiter(
+    old_nodes: list[TextNode],
+    delimiter: str,
+    text_type: TextType
+) -> list[TextNode]:
+    raise NotImplementedError("WIP")
+
+    return_list: list[TextNode] = []
     for node in old_nodes:
-        for i in range(len(node.text)):
-            if node.text[i] == Delimiters.CODE.value:
-                delimiters_debug[Delimiters.CODE.value].append(i)
+        if node.text_type is not TextType.TEXT_NORMAL:
+            return_list.append(node)
 
-            if i + 1 < len(node.text):
-                if (
-                    node.text[i] == Delimiters.ITALIC.value
-                    and node.text[i + 1] == Delimiters.ITALIC.value
-                    and i - 1 not in delimiters_debug[Delimiters.BOLD.value]
-                ):
-                    delimiters_debug[Delimiters.BOLD.value].append(i)
-                elif (
-                    node.text[i] == Delimiters.ITALIC.value
-                    and i - 1 not in delimiters_debug[Delimiters.BOLD.value]
-                ):
-                    delimiters_debug[Delimiters.ITALIC.value].append(i)
+        delimiter_range: list[int] = list(find_all(node.text, delimiter))
 
-                if node.text[i] == "!" and node.text[i + 1] == Delimiters.LINK.value:
-                    delimiters_debug[Delimiters.IMAGE.value].append(i)
-
-                if node.text[i] == Delimiters.LINK.value and node.text[i - 1] != "!":
-                    delimiters_debug[Delimiters.LINK.value].append(i)
-
-                if node.text[i] == "]" and node.text[i + 1] == "(":
-                    delimiters_debug[Delimiters.LINK_MID.value].append(i)
-
-            if node.text[i] == Delimiters.LINK_CLOSE.value:
-                delimiters_debug[Delimiters.LINK_CLOSE.value].append(i)
-
-            if i == len(node.text) - 1:
-                if (
-                    node.text[i] == Delimiters.ITALIC.value
-                    and node.text[i - 1] != Delimiters.ITALIC.value
-                ):
-                    delimiters_debug[Delimiters.ITALIC.value].append(i)
-
-    print("\nAll delimiters:", delimiters_debug)
-
-    delimiters_left: dict[str, list[int]] = {
-        Delimiters.CODE.value: [],
-        Delimiters.ITALIC.value: [],
-        Delimiters.BOLD.value: [],
-        Delimiters.LINK.value: [],
-        Delimiters.IMAGE.value: [],
-    }
-
-    delimiters_right: dict[str, list[int]] = {
-        Delimiters.CODE.value: [],
-        Delimiters.ITALIC.value: [],
-        Delimiters.BOLD.value: [],
-        Delimiters.LINK_MID.value: [],
-        Delimiters.LINK_CLOSE.value: [],
-    }
-
-    for node in old_nodes:
-        for i in range(len(node.text)):
-
-            if (
-                node.text[i] == Delimiters.CODE.value
-                and (
-                    len(delimiters_left[Delimiters.CODE.value])
-                    < len(delimiters_right[Delimiters.CODE.value])
-                    or len(delimiters_left[Delimiters.CODE.value])
-                    == len(delimiters_right[Delimiters.CODE.value])
-                )
-                and i not in delimiters_right[Delimiters.CODE.value]
-            ):
-                delimiters_left[Delimiters.CODE.value].append(i)
-
-            if (
-                node.text[i] == Delimiters.CODE.value
-                and len(delimiters_left[Delimiters.CODE.value])
-                > len(delimiters_right[Delimiters.CODE.value])
-                and i not in delimiters_left[Delimiters.CODE.value]
-            ):
-                delimiters_right[Delimiters.CODE.value].append(i)
-
-            if i + 1 < len(node.text):
-                if i + 2 < len(node.text):
-                    if (
-                        node.text[i] == Delimiters.ITALIC.value
-                        and node.text[i + 1] == Delimiters.ITALIC.value
-                        and node.text[i + 2] != " "
-                        and i not in delimiters_right[Delimiters.BOLD.value]
-                        and i - 1 not in delimiters_left[Delimiters.BOLD.value]
-                        and i - 1 not in delimiters_right[Delimiters.BOLD.value]
-                        and (
-                            len(delimiters_left[Delimiters.BOLD.value])
-                            < len(delimiters_right[Delimiters.BOLD.value])
-                            or len(delimiters_left[Delimiters.BOLD.value])
-                            == len(delimiters_right[Delimiters.BOLD.value])
-                        )
-                    ):
-                        delimiters_left[Delimiters.BOLD.value].append(i)
-
-                    if (
-                        node.text[i] == Delimiters.ITALIC.value
-                        and node.text[i + 1] == Delimiters.ITALIC.value
-                        and node.text[i - 1] != " "
-                        and i not in delimiters_left[Delimiters.BOLD.value]
-                        and i - 1 not in delimiters_right[Delimiters.BOLD.value]
-                        and i - 1 not in delimiters_left[Delimiters.BOLD.value]
-                        and len(delimiters_left[Delimiters.BOLD.value])
-                        > len(delimiters_right[Delimiters.BOLD.value])
-                    ):
-                        if delimiters_left[Delimiters.BOLD.value][-1] == i - 2:
-                            delimiters_left[Delimiters.BOLD.value].pop()
-                        else:
-                            delimiters_right[Delimiters.BOLD.value].append(i)
-
-                if (
-                    node.text[i] == Delimiters.ITALIC.value
-                    and node.text[i + 1] != " "
-                    and i not in delimiters_right[Delimiters.ITALIC.value]
-                    and i not in delimiters_right[Delimiters.BOLD.value]
-                    and i not in delimiters_left[Delimiters.BOLD.value]
-                    and i - 1 not in delimiters_left[Delimiters.BOLD.value]
-                    and i - 1 not in delimiters_right[Delimiters.BOLD.value]
-                    and (
-                        len(delimiters_left[Delimiters.ITALIC.value])
-                        < len(delimiters_right[Delimiters.ITALIC.value])
-                        or len(delimiters_left[Delimiters.ITALIC.value])
-                        == len(delimiters_right[Delimiters.ITALIC.value])
-                    )
-                ):
-                    delimiters_left[Delimiters.ITALIC.value].append(i)
-
-                if node.text[i] == "!" and node.text[i + 1] == Delimiters.LINK.value:
-                    delimiters_left[Delimiters.IMAGE.value].append(i)
-
-                if node.text[i] == "]" and node.text[i + 1] == "(":
-                    delimiters_right[Delimiters.LINK_MID.value].append(i)
-
-            if node.text[i] == Delimiters.LINK.value and node.text[i - 1] != "!":
-                delimiters_left[Delimiters.LINK.value].append(i)
-
-            if node.text[i] == Delimiters.LINK_CLOSE.value:
-                delimiters_right[Delimiters.LINK_CLOSE.value].append(i)
-
-            if (
-                node.text[i] == Delimiters.ITALIC.value
-                and node.text[i - 1] != " "
-                and i not in delimiters_left[Delimiters.ITALIC.value]
-                and i not in delimiters_right[Delimiters.BOLD.value]
-                and i not in delimiters_left[Delimiters.BOLD.value]
-                and i - 1 not in delimiters_right[Delimiters.BOLD.value]
-                and i - 1 not in delimiters_left[Delimiters.BOLD.value]
-                and len(delimiters_left[Delimiters.ITALIC.value])
-                > len(delimiters_right[Delimiters.ITALIC.value])
-            ):
-                if delimiters_left[Delimiters.ITALIC.value][-1] == i - 1:
-                    delimiters_left[Delimiters.ITALIC.value].pop()
-                    if i + 1 < len(node.text):
-                        if node.text[i + 1] != " ":
-                            delimiters_left[Delimiters.ITALIC.value].append(i)
-                else:
-                    delimiters_right[Delimiters.ITALIC.value].append(i)
-
-    print("left:", delimiters_left, "\nright:", delimiters_right)
-
-
-def split_all_nodes(nodes: Sequence[TextNode]) -> Sequence[TextNode]:
-    pass
-
-
-def split_nodes(old_nodes: Sequence[TextNode]) -> Sequence[TextNode]:
-
-    res: Sequence[TextNode] = []
-
-    for node in old_nodes:
-        code_pair: int | None = None
-        last_code_symbol: int | None = None
-
-        image_start: int | None = None
-        image_middle: int | None = None
-
-        link_start: int | None = None
-        link_middle: int | None = None
-
-        bold_pair: int | None = None
-
-        italic_pair: int | None = None
-
-        transformation_pair: int | None = None
-        looking_for_pair: tuple[int, Delimiters] | None = None
-
-        # print("start", node.text)
-        i = 0
-        while i < len(node.text):
-            print(
-                "current",
-                i,
-                node.text[i],
-                node.text,
-                code_pair,
-                bold_pair,
-                italic_pair,
-                image_start,
-                link_middle,
-                looking_for_pair,
-            )
-            if (
-                i != 0
-                and looking_for_pair != None
-                and looking_for_pair[0] > 0
-                and len(node.text[0 : looking_for_pair[0]]) > 0
-            ):
-                print(
-                    "normal",
-                    i,
-                    looking_for_pair,
-                    "'",
-                    node.text[0 : looking_for_pair[0]],
-                    "'",
-                )
-                res.append(
-                    TextNode(
-                        node.text[0 : looking_for_pair[0]],
-                        TextType.TEXT_NORMAL,
-                    )
-                )
-                print(node.text[looking_for_pair[0] :])
-                node.text = node.text[looking_for_pair[0] :]
-                match looking_for_pair[1]:
-                    case Delimiters.CODE:
-                        code_pair = 0
-                    case Delimiters.BOLD:
-                        bold_pair = 0
-                    case Delimiters.ITALIC:
-                        italic_pair = 0
-                    case Delimiters.IMAGE:
-                        image_start = 0
-                    case Delimiters.LINK:
-                        link_start = 0
-                i = 0
-                looking_for_pair = None
-                continue
-
-            if node.text[i] == Delimiters.CODE.value:
-                last_code_symbol = i
-
-            if node.text[i] == Delimiters.CODE.value and code_pair == None:
-                print("code start", i)
-                code_pair = i
-
-                if italic_pair == None and bold_pair == None:
-                    looking_for_pair = (i, Delimiters.CODE)
-
-            if bold_pair == None and italic_pair == None:
-                if (
-                    i > 0
-                    and node.text[i] == Delimiters.CODE.value
-                    and code_pair != None
-                    and i != code_pair
-                ):
-                    # print("code text start", node.text)
-                    print("code end", i)
-                    res.append(
-                        TextNode(
-                            node.text[code_pair + 1 : i],
-                            TextType.TEXT_CODE,
-                        )
-                    )
-                    # print("s", node.text[: code_pair])
-                    # print("e", node.text[i + 1 :])
-                    node.text = node.text[:code_pair] + node.text[i + 1 :]
-                    i = 0
-                    code_pair = None
-                    continue
-
-                if code_pair != None:
-                    if i + 1 >= len(node.text):
-                        i = code_pair
-                        code_pair = None
-                    i += 1
-                    continue
-
-                if i + 1 < len(node.text):
-                    if (
-                        node.text[i] == "!"
-                        and node.text[i + 1] == Delimiters.LINK.value
-                        and image_start == None
-                    ):
-                        image_start = i
-                        looking_for_pair = (i, Delimiters.IMAGE)
-                        print("img start", i)
-                    elif (
-                        node.text[i] == "]"
-                        and node.text[i + 1] == "("
-                        and image_start != None
-                    ):
-                        image_middle = i
-
-                    if (
-                        node.text[i - 1] != "!"
-                        and node.text[i] == Delimiters.LINK.value
-                        and link_start == None
-                    ):
-                        link_start = i
-                        looking_for_pair = (i, Delimiters.LINK)
-                        print("link start", i)
-                    elif (
-                        node.text[i] == "]"
-                        and node.text[i + 1] == "("
-                        and link_start != None
-                    ):
-                        link_middle = i
-
-                    if (
-                        node.text[i] == Delimiters.LINK_CLOSE.value
-                        and image_start != None
-                        and image_middle != None
-                    ):
-                        print("image end", i)
-                        res.append(
-                            TextNode(
-                                node.text[image_start + 2 : image_middle],
-                                TextType.IMAGE,
-                                node.text[image_middle + 2 : i],
-                            )
-                        )
-                        node.text = node.text[:image_start] + node.text[i + 1 :]
-                        i = 0
-                        image_start = None
-                        image_middle = None
-                        continue
-
-                    if (
-                        node.text[i] == Delimiters.LINK_CLOSE.value
-                        and link_start != None
-                        and link_middle != None
-                    ):
-                        print("link end", i)
-                        res.append(
-                            TextNode(
-                                node.text[link_start + 1 : link_middle],
-                                TextType.LINK,
-                                node.text[link_middle + 2 : i],
-                            )
-                        )
-                        node.text = node.text[:link_start] + node.text[i + 1 :]
-
-                        i = 0
-                        link_start = None
-                        link_middle = None
-                        continue
-
-            if i + 2 < len(node.text):
-                if (
-                    node.text[i] == Delimiters.ITALIC.value
-                    and node.text[i + 1] == Delimiters.ITALIC.value  # BOLD
-                    and node.text[i + 2] != " "  # left delimiter (start)
-                    and bold_pair == None
-                    and code_pair == None
-                ):
-                    bold_pair = i
-                    if italic_pair == None:
-                        looking_for_pair = (i, Delimiters.BOLD)
-                    print("open bold", i, "'", node.text, "'")
-
-                if (
-                    i > 0
-                    and node.text[i] == Delimiters.ITALIC.value
-                    and node.text[i + 1] == Delimiters.ITALIC.value  # BOLD
-                    and node.text[i - 1] != Delimiters.ITALIC.value
-                    and node.text[i - 1] != " "  # right delimiter (end)
-                    and bold_pair != None
-                    and i != bold_pair
-                ):
-                    if transformation_pair != None and italic_pair != None:
-                        print(
-                            "handling situation",
-                            italic_pair,
-                            bold_pair,
-                            transformation_pair,
-                            i,
-                        )
-
-                        res.append(
-                            TextNode(
-                                node.text[italic_pair + 1 : i + 1],
-                                TextType.TEXT_ITALIC,
-                            )
-                        )
-                        print("sit", node.text[italic_pair + 1 : i + 1])
-
-                        print("s", node.text[:italic_pair])
-                        print("e", node.text[i + 2 :])
-                        node.text = node.text[:italic_pair] + node.text[i + 2 :]
-                        print("handled", node.text)
-                        i = 0
-
-                        italic_pair = None
-                        bold_pair = None
-                        transformation_pair = None
-                        continue
-                    else:
-                        if code_pair == None or code_pair != last_code_symbol:
-                            print("bold end", i)
-                            """
-                            print("bold text start", node.text)
-                            print(bold_pair, i)
-                            print("bold:", node.text[bold_pair + 2 : i])
-                            """
-                            res.append(
-                                TextNode(
-                                    node.text[bold_pair + 2 : i],
-                                    TextType.TEXT_BOLD,
-                                )
-                            )
-                            """
-                            print("s", node.text[:bold_pair])
-                            print("e", node.text[i + 2 :])
-                            """
-                            node.text = node.text[:bold_pair] + node.text[i + 2 :]
-                            i = 0
-                            italic_pair = None
-                            code_pair = None
-                            bold_pair = None
-                            continue
-
-                if (
-                    node.text[i] == Delimiters.ITALIC.value
-                    and node.text[i + 1] != Delimiters.ITALIC.value  # ITALIC
-                    and node.text[i + 1] != " "  # left delimiter (start)
-                    and italic_pair == None
-                    and bold_pair == None
-                    and code_pair == None
-                ):
-                    italic_pair = i
-                    looking_for_pair = (i, Delimiters.ITALIC)
-
-                    print("open italic", i)
-
-            if (
-                i > 0
-                and node.text[i] == Delimiters.ITALIC.value
-                and node.text[i - 1] != " "  # right delimiter (end)
-                and node.text[i - 1] != Delimiters.ITALIC.value  # not end of BOLD
-                and italic_pair != None
-                and i != italic_pair
-            ):
-                if bold_pair != None and italic_pair < bold_pair:
-                    print("we have a situation", i)
-                    transformation_pair = i
-                else:
-                    print("italic end", i)
-                    if code_pair == None or code_pair != last_code_symbol:
-                        if node.text[italic_pair + 1] == Delimiters.ITALIC.value:
-                            italic_pair += 1
-                        res.append(
-                            TextNode(
-                                node.text[italic_pair + 1 : i],
-                                TextType.TEXT_ITALIC,
-                            )
-                        )
-                        node.text = node.text[:italic_pair] + node.text[i + 1 :]
-                        i = 0
-                        italic_pair = None
-                        code_pair = None
-                        bold_pair = None
-                        continue
-
-            if i + 1 >= len(node.text):
-                print("finish line")
-                if bold_pair != None:
-                    print(
-                        "unmatch bold",
-                        i,
-                        bold_pair,
-                        looking_for_pair,
-                        transformation_pair,
-                    )
-                    if transformation_pair != None and italic_pair != None:
-                        res.append(
-                            TextNode(
-                                node.text[italic_pair + 1 : i],
-                                TextType.TEXT_ITALIC,
-                            )
-                        )
-                        node.text = node.text[:italic_pair] + node.text[i + 1 :]
-                        transformation_pair = None
-
-                    if bold_pair + 2 <= len(node.text):
-                        if (
-                            node.text[bold_pair + 2] != Delimiters.ITALIC.value
-                        ):  # Not another bold possibility
-                            italic_pair = bold_pair  # try italic since bold unmatched
-                    looking_for_pair = (bold_pair + 1, Delimiters.BOLD)
-                    i = bold_pair
-                    bold_pair = None
-                elif italic_pair != None:
-                    print("unmatch italic", i, italic_pair, looking_for_pair)
-                    i = italic_pair
-                    looking_for_pair = (italic_pair, Delimiters.ITALIC)
-                    italic_pair = None
-                i += 1
-                continue
-
-            i += 1
-        print("finish", node.text)
-
-    return res
+        if len(delimiter_range) % 2 != 0:
+            raise Exception(f"Invalid markdown syntax, delimiter found at {
+                            delimiter_range[-1]} did not found a closing pair")
+        for i in range(1, len(delimiter_range), 2):
+            start = delimiter_range[i - 1]
+            end = delimiter_range[i + 1]
