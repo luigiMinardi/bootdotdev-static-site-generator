@@ -3,7 +3,14 @@ import unittest
 
 from htmlnode import HTMLNode
 from textnode import TextNode, TextType
-from utils import text_node_to_html_node, split_nodes_delimiter, Delimiters, find_all
+from utils import (
+    text_node_to_html_node,
+    split_nodes_delimiter,
+    Delimiters,
+    find_all,
+    extract_markdown_images,
+    extract_markdown_links
+)
 
 
 class TextTypeToHTML(Enum):
@@ -165,3 +172,38 @@ class TestSplitNodes(unittest.TestCase):
             str(cm.exception),
             'Invalid markdown syntax, delimiter found at 4 did not found a closing pair',
         )
+
+
+class TestExtractMarkdownImagesAndLinks(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.example_url = \
+            "https://www.boot.dev/img/bootdev-logo-full-small.webp"
+
+        cls.example_text = f"""
+            **[[[[[[[[[[Nunc ultrices aliquet nunc.](](](](](](]({
+            cls.example_url
+        }))** *`Pellentesque `*`sodales quam` ![![![![![(odio](](](](](]({
+            cls.example_url
+        }))
+        )** *`Pellentesque `*`sodales quam` ![bar ]({
+            cls.example_url
+        })
+        !)](** *`Pellentesque `*`sodales quam` [ foo]({
+            cls.example_url
+        })
+        ![[])!()
+        """
+
+    def test_extract_markdown_images(self):
+        res = extract_markdown_images(self.example_text)
+        self.assertTrue(len(res) == 2)
+        self.assertEqual(-1, res[0][1].find("]("))
+        self.assertEqual(-1, res[1][1].find("]("))
+
+    def test_extract_markdown_links(self):
+        res = extract_markdown_links(self.example_text)
+        self.assertTrue(len(res) == 2)
+        self.assertEqual(-1, res[0][1].find("]("))
+        self.assertEqual(-1, res[1][1].find("]("))

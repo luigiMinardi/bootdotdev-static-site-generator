@@ -176,6 +176,86 @@ def split_nodes_delimiter(
     return return_list
 
 
+def extract_markdown_images(text: str) -> list[tuple[str, str]]:
+    """
+    Check if a string has markdown images inside of it and return its values as
+    tuples in a list being the first value the alt text and the second value
+    the url.
+
+    Arguments:
+        text (str): text to search
+    Return:
+        list[tuple[str, str]]: a list with tuples representing all images
+        found, the first argument is the alt text the second is the image url.
+        If nothing is found returns an empty list.
+    """
+
+    return_list: list[tuple[str, str]] = []
+    i = 0
+    while i < len(text):
+        start = text.find(Delimiters.IMAGE.value, i)
+        middle = text.find(Delimiters.LINK_MID.value, start)
+        end = text.find(Delimiters.LINK_CLOSE.value, middle)
+
+        check = 0
+        while check != -1:
+            check = text.find(
+                Delimiters.LINK_MID.value, middle + 1, end)
+            if check != -1 and middle != check:
+                middle = check
+
+        if start != -1 and middle != -1 and end != -1:
+            return_list.append((
+                text[start+len(Delimiters.IMAGE.value):middle],
+                text[middle+len(Delimiters.LINK_MID.value):end]))
+            i = end
+        else:
+            break
+    return return_list
+
+
+def extract_markdown_links(text: str) -> list[tuple[str, str]]:
+    """
+    Check if a string has markdown links inside of it and return its values as
+    tuples in a list being the first value the anchor text and the second value
+    the url.
+
+    Arguments:
+        text (str): text to search
+    Return:
+        list[tuple[str, str]]: a list with tuples representing all links found,
+        the first argument is the anchor text the second is the image url. If
+        nothing is found returns an empty list.
+    """
+
+    return_list: list[tuple[str, str]] = []
+    i = 0
+    while i < len(text):
+        start = text.find(Delimiters.LINK.value, i)
+        if start > 0 and text[start - 1] == "!":
+            i = start + 1
+            continue
+
+        middle = text.find(Delimiters.LINK_MID.value, start)
+        end = text.find(Delimiters.LINK_CLOSE.value, middle)
+
+        check = 0
+        while check != -1:
+            check = text.find(
+                Delimiters.LINK_MID.value, middle + 1, end)
+            if check != -1 and middle != check:
+                middle = check
+
+        if start != -1 and middle != -1 and end != -1:
+            return_list.append((
+                text[start+len(Delimiters.LINK.value):middle],
+                text[middle+len(Delimiters.LINK_MID.value):end]))
+            i = end
+        else:
+            break
+    return return_list
+
+
 if __name__ == "__main__":
     """
     This is development testing, I'll leve it here to show a little of my
