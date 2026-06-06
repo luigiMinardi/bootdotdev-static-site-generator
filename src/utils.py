@@ -29,7 +29,7 @@ def text_node_to_html_node(text_node: TextNode) -> HTMLNode:
 
 class Delimiters(Enum):
     CODE = "`"
-    ITALIC = "*"
+    ITALIC = "_"
     BOLD = "**"
     LINK = "["
     IMAGE = "!["
@@ -127,9 +127,14 @@ def split_nodes_delimiter(
     for node in old_nodes:
         if node.text_type is not TextType.TEXT_NORMAL:
             return_list.append(node)
+            continue
 
         text: str = node.text
         delimiter_ranges_list: list[int] = list(find_all(text, delimiter))
+        if len(delimiter_ranges_list) == 0:
+            return_list.append(
+                TextNode(text, TextType.TEXT_NORMAL))
+            continue
 
         if len(delimiter_ranges_list) % 2 != 0:
             raise Exception(f"Invalid markdown syntax, delimiter found at {
@@ -284,9 +289,14 @@ def split_nodes_image(old_nodes: list[TextNode]) -> list[TextNode]:
     for node in old_nodes:
         if node.text_type is not TextType.TEXT_NORMAL:
             return_list.append(node)
+            continue
 
         text: str = node.text
         images: list[tuple[str, str, int, int]] = extract_markdown_images(text)
+        if len(images) == 0:
+            return_list.append(
+                TextNode(text, TextType.TEXT_NORMAL))
+            continue
 
         last_parsed_idx: int = 0
         for i in range(len(images)):
@@ -328,9 +338,14 @@ def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
     for node in old_nodes:
         if node.text_type is not TextType.TEXT_NORMAL:
             return_list.append(node)
+            continue
 
         text: str = node.text
         links: list[tuple[str, str, int, int]] = extract_markdown_links(text)
+        if len(links) == 0:
+            return_list.append(
+                TextNode(text, TextType.TEXT_NORMAL))
+            continue
 
         last_parsed_idx: int = 0
         for i in range(len(links)):
@@ -354,6 +369,28 @@ def split_nodes_link(old_nodes: list[TextNode]) -> list[TextNode]:
                          TextType.TEXT_NORMAL)
             )
     return return_list
+
+
+def text_to_textnodes(text: str) -> list[TextNode]:
+    """
+    Given a text string convert all markdown delimiters into their TextNode's
+
+    Arguments:
+        text (str): text to be converted
+    Return:
+        list[TextNode]: a nodes list where every delimiter were converted into
+        the correct TextNode.
+    """
+    start = [TextNode(text, TextType.TEXT_NORMAL)]
+    images = split_nodes_image(start)
+    links = split_nodes_link(images)
+    bold = split_nodes_delimiter(
+        links, Delimiters.BOLD.value, TextType.TEXT_BOLD)
+    italic = split_nodes_delimiter(
+        bold, Delimiters.ITALIC.value, TextType.TEXT_ITALIC)
+    code = split_nodes_delimiter(
+        italic, Delimiters.CODE.value, TextType.TEXT_CODE)
+    return code
 
 
 if __name__ == "__main__":
