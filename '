@@ -95,35 +95,11 @@ def split_nodes_delimiter(
     delimiter: str,
     text_type: TextType
 ) -> list[TextNode]:
-    """
-    Given a TextNode list (old_nodes) convert all nodes with
-    TextType.TEXT_NORMAL that have the given delimiter at least twice and in
-    pairs (e.g. delimiter is ** and the text is "**foo**" and not "**foo" or
-    "**foo** **bar") split at the delimiter returning a new TextNode with the
-    given text_type.
+    raise NotImplementedError("WIP")
 
-    Example:
-    old_nodes = [TextNode("**foo** bar", TextType.TEXT_NORMAL)]
-    delimiter = "**"
-    text_type = TextType.TEXT_BOLD
-
-    Results in:
-    [
-        TextNode("foo", TextType.TEXT_BOLD),
-        TextNode(" bar", TextType.TEXT_NORMAL)
-    ])
-
-    Arguments:
-        old_nodes (list[TextNode]): list of nodes to split by delimiter
-        delimiter (str): delimiter to be used on the split
-        text_type (TextType): TextType of the new nodes after the split
-    Return:
-        list[TextNode]: a new nodes list where normal text that had the
-        delimiter were changed into text_type TextNode's, nodes that had a type
-        other than normal were kept unchanged
-    """
     return_list: list[TextNode] = []
 
+    last_iteration: int = 0
     for node in old_nodes:
         if node.text_type is not TextType.TEXT_NORMAL:
             return_list.append(node)
@@ -135,22 +111,19 @@ def split_nodes_delimiter(
             raise Exception(f"Invalid markdown syntax, delimiter found at {
                             delimiter_ranges_list[-1]
                             } did not found a closing pair")
-
-        last_iteration: int = 0
         for i in range(1, len(delimiter_ranges_list), 2):
             start_with_delimiter: int = delimiter_ranges_list[i - 1]
-            end_without_delimiter: int = delimiter_ranges_list[i]
+            end_without_delimiter: int = delimiter_ranges_list[i + 1]
             start_without_delimiter: int = start_with_delimiter + \
                 len(delimiter)
 
             node_before_delimiter: int
             if i == 1:
-                node_before_delimiter: str = text[:start_with_delimiter]
+                node_before_delimiter = txt[:start_with_delimiter]
             else:
-                previous_end_with_delimiter: int = delimiter_ranges_list[i-2] \
-                    + len(delimiter)
-                node_before_delimiter: str = \
-                    text[previous_end_with_delimiter:start_with_delimiter]
+                previous_end_with_delimiter: int = lst[i-2] + len(delimiter)
+                node_before_delimiter = \
+                    txt[previous_end_with_delimiter:start_with_delimiter]
 
             if node_before_delimiter != "":
                 return_list.append(
@@ -160,20 +133,10 @@ def split_nodes_delimiter(
                     text[start_without_delimiter:end_without_delimiter],
                     text_type))
             last_iteration = i
-
-        if (last_iteration != 0 and
-            delimiter_ranges_list[last_iteration]
-                + len(delimiter) < len(text) - 1):
-            return_list.append(
-                TextNode(
-                    text[delimiter_ranges_list[last_iteration] +
-                         len(delimiter):],
-                    TextType.TEXT_NORMAL))
-    if len(return_list) == 0:
-        raise Exception(f"Empty list with:\nold_nodes {
-            old_nodes}\ndelimiter {
-            delimiter}\ntext_type: {text_type}")
-    return return_list
+        if (last_iter != 0 and
+                delimiter_ranges_list[last_iteration]
+                + len(delimiter) < len(txt) - 1):
+            print('make lst[last_iter]+len(deli): normal text')
 
 
 if __name__ == "__main__":
@@ -187,13 +150,9 @@ if __name__ == "__main__":
     in the master branch
     """
     deli = "**"
-    txt = "foo *bar **bazz**, **bar *bazz foo bar ** foo *bazz*"
+    txt = "foo *bar **bazz**, **bar *bazz foo bar ** foo **bazz*"
     #      0123456789
-    txt2 = "**bazz**, **bar *bazz foo bar **"
-    txt3 = "this is a parsed bold text"
-    nodes: list[TextNode] = [TextNode(txt, TextType.TEXT_NORMAL), TextNode(
-        txt2, TextType.TEXT_NORMAL), TextNode("", TextType.TEXT_NORMAL), TextNode(txt3, TextType.TEXT_BOLD)]
-    print(split_nodes_delimiter(nodes, "**", TextType.TEXT_BOLD))
+    # txt = "**bazz**, **bar *bazz foo bar **"
     print(txt)
     lst = list(find_all(txt, deli))
     # [9, 15, 19, 39, 46]

@@ -3,7 +3,7 @@ import unittest
 
 from htmlnode import HTMLNode
 from textnode import TextNode, TextType
-from utils import text_node_to_html_node, _split_nodes_debug, split_nodes
+from utils import text_node_to_html_node, split_nodes_delimiter, Delimiters, find_all
 
 
 class TextTypeToHTML(Enum):
@@ -20,7 +20,8 @@ class TestTextNodeToHtmlNode(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
         cls.example_text = "hello world"
-        cls.example_url = "https://www.boot.dev/img/bootdev-logo-full-small.webp"
+        cls.example_url = \
+            "https://www.boot.dev/img/bootdev-logo-full-small.webp"
 
     def _test_text_node_to_html_helper(
         self,
@@ -31,21 +32,31 @@ class TestTextNodeToHtmlNode(unittest.TestCase):
         expected_text: str | None = None,
     ) -> None:
         """
-        Helper function to test the text_node_to_html_node() function since most tests are the same.
+        Helper function to test the text_node_to_html_node() function since
+        most tests are the same.
 
-        text (str): The text of the HTML element (or alt text for images). [Used on Input]
-        text_type (TextType): The text type of the TextNode that you want to test. [Used on Input]
-        url (str | None): The URL value if needed. Used on TextType IMAGE or LINK for example. [Used on Input]
-        props (dict | None): A dict representing all props the HTML element will have after the function have ran. [Used on Assertion]
-        expected_text (str | None): The text expected on assertion, DEFAULTS TO the "text" argument if None. [Used on Assertion]
+        text (str): The text of the HTML element (or alt text for images).
+            [Used on Input]
+        text_type (TextType): The text type of the TextNode that you want to
+            test. [Used on Input]
+        url (str | None): The URL value if needed. Used on TextType IMAGE or
+            LINK for example. [Used on Input]
+        props (dict | None): A dict representing all props the HTML element
+            will have after the function have ran. [Used on Assertion]
+        expected_text (str | None): The text expected on assertion, DEFAULTS TO
+            the "text" argument if None. [Used on Assertion]
 
         How the "expected_text" works:
-            self._test_text_node_to_html_helper("foo", TextType.TEXT_NORMAL) -> expected_text is "foo"
+            self._test_text_node_to_html_helper("foo", TextType.TEXT_NORMAL)
+                -> expected_text is "foo"
 
-            self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_NORMAL, expected_text="bar") -> expected_text is "bar"
+            self._test_text_node_to_html_helper(self.example_text,
+                TextType.TEXT_NORMAL, expected_text="bar")
+                    -> expected_text is "bar"
 
-            On the first example the assertion will try to see if the HTML element innerHTML text is "foo"
-            On the seccond example it will try to see if it's "bar"
+            On the first example the assertion will try to see if the HTML
+                element innerHTML text is "foo"
+            On the second example it will try to see if it's "bar"
         """
         tag = TextTypeToHTML[text_type.value].value
         expected_text = text if expected_text is None else expected_text
@@ -60,16 +71,20 @@ class TestTextNodeToHtmlNode(unittest.TestCase):
         )
 
     def test_text_normal(self):
-        self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_NORMAL)
+        self._test_text_node_to_html_helper(
+            self.example_text, TextType.TEXT_NORMAL)
 
     def test_text_bold(self):
-        self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_BOLD)
+        self._test_text_node_to_html_helper(
+            self.example_text, TextType.TEXT_BOLD)
 
     def test_text_italic(self):
-        self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_ITALIC)
+        self._test_text_node_to_html_helper(
+            self.example_text, TextType.TEXT_ITALIC)
 
     def test_text_code(self):
-        self._test_text_node_to_html_helper(self.example_text, TextType.TEXT_CODE)
+        self._test_text_node_to_html_helper(
+            self.example_text, TextType.TEXT_CODE)
 
     def test_text_link(self):
         self._test_text_node_to_html_helper(
@@ -104,29 +119,49 @@ class TestTextNodeToHtmlNode(unittest.TestCase):
 class TestSplitNodes(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
-        cls.example_url = "https://www.boot.dev/img/bootdev-logo-full-small.webp"
+        cls.example_url = \
+            "https://www.boot.dev/img/bootdev-logo-full-small.webp"
 
     def test_split_nodes(self):
+        """
+        # old node list test from when I was trying to implement real
+        # CommonMark
         nodes_list = [
             TextNode(
-                f"***Lorem* ipsum** `dolor` sit* *amet, **consectetur adipiscing* elit**. **[Nunc ultrices aliquet nunc.]({self.example_url})** *`Pellentesque `*`sodales quam` ![odio]({self.example_url}), **quis**** *porta `**massa* condimentum`** ****ut.*",
+                f"***Lorem* ipsum** `dolor` sit* *amet, **consectetur adipiscing* elit**. **[Nunc ultrices aliquet nunc.]({
+                    self.example_url
+                })** *`Pellentesque `*`sodales quam` ![odio]({
+                    self.example_url
+                }), **quis**** *porta `**massa* condimentum`** ****ut.*",
                 TextType.TEXT_NORMAL,
             )
         ]
+        """
+        nodes_list = [
+            TextNode(
+                f"***Lorem* ipsum** `dolor` sit* *amet, **consectetur adipiscing* elit**. **[Nunc ultrices aliquet nunc.]({
+                    self.example_url
+                })** *`Pellentesque `*`sodales quam` ![odio]({
+                    self.example_url
+                }), **quis**** *porta `**massa* condimentum`** ***ut.*",
+                TextType.TEXT_NORMAL,
+            )
+        ]
+
+        new_list = split_nodes_delimiter(
+            nodes_list, Delimiters.BOLD.value, TextType.TEXT_BOLD)
+        for node in new_list:
+            recheck = list(find_all(node.text, Delimiters.BOLD.value))
+            self.assertTrue(len(recheck) == 0 or len(recheck) % 2 != 0)
+
+    def test_split_nodes_raises(self):
         nodes_list2 = [TextNode("*foo**bar*", TextType.TEXT_NORMAL)]
 
-        _split_nodes_debug(nodes_list)
-        new_list = split_nodes(nodes_list)
-        print(new_list)
+        with self.assertRaises(Exception) as cm:
+            split_nodes_delimiter(
+                nodes_list2, Delimiters.BOLD.value, TextType.TEXT_BOLD)
 
-        for node in new_list:
-            html = text_node_to_html_node(node)
-            print(html.to_html())
-
-        new_list2 = split_nodes(nodes_list2)
-        print(new_list2)
-
-        for node in new_list2:
-            html = text_node_to_html_node(node)
-            print(html.to_html())
-        self.assertEqual(1, 2)
+        self.assertEqual(
+            str(cm.exception),
+            'Invalid markdown syntax, delimiter found at 4 did not found a closing pair',
+        )
